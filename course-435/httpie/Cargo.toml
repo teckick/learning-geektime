@@ -9,3 +9,6 @@ clap = "3.0.0-beta.4" # 命令行解析
 colored = "2" # 命令终端多彩显示
 syntect = "4.6.0" # 语法高亮
 reqwest = { version = "0.11", features = ["json"] }
+tokio = { version = "1.11.0", features = ["full"] } # 这里必须加上features = ["full"]
+mime = "0.3.16"
+jsonxf = "1.1.1"

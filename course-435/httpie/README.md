@@ -13,3 +13,9 @@
 - clap: 命令行解析
 - reqwest: HTTP客户端
 - colored: 格式化输出
+
+## 使用
+
+```bash
+> httpie get https://httpbin.org/get
+```
