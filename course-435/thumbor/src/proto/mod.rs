@@ -3,8 +3,8 @@ use std::convert::TryFrom;
 use base64::{decode_config, encode_config, URL_SAFE_NO_PAD};
 use prost::Message;
 
-mod image;
-pub use image::*;
+mod specs;
+pub use specs::*;
 
 use self::resize::ResizeType;
 
@@ -55,6 +55,18 @@ impl Spec {
     pub fn new_watermark(x: u32, y: u32) -> Self {
         Self {
             data: Some(spec::Data::Watermark(Watermark { x: x, y: y })),
+        }
+    }
+
+    pub fn new_flipv() -> Self {
+        Self {
+            data: Some(spec::Data::Flipv(Flipv {})),
+        }
+    }
+
+    pub fn new_fliph() -> Self {
+        Self {
+            data: Some(spec::Data::Fliph(Fliph {})),
         }
     }
 }

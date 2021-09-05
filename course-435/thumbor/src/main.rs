@@ -6,8 +6,10 @@ use axum::{
     http::{HeaderMap, HeaderValue, StatusCode},
     AddExtensionLayer, Router,
 };
+use engine::{Engine, Photon};
+use image::ImageOutputFormat;
 use lru::LruCache;
-use percent_encoding::percent_decode_str;
+use percent_encoding::{NON_ALPHANUMERIC, percent_decode_str, percent_encode};
 use proto::ImageSpec;
 use serde::Deserialize;
 use std::{
@@ -22,6 +24,7 @@ use tower::ServiceBuilder;
 use tracing::{info, instrument};
 
 mod proto;
+mod engine;
 
 use proto::*;
 
@@ -33,9 +36,12 @@ struct Params {
     url: String,
 }
 
+
+
 type Cache = Arc<Mutex<LruCache<u64, Bytes>>>;
 
 #[tokio::main]
+#[instrument(level = "info")]
 async fn main() {
     tracing_subscriber::fmt::init();
 
@@ -54,6 +60,9 @@ async fn main() {
     // run our app with hyper
     // `axum::Server` is a re-export of `hyper::Server`
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+
+    print_test_url("https://images.pexels.com/photos/1562477/pexels-photo-1562477.jpeg?auto=compress&cs=tinysrgb&dpr=3&h=750&w=1260");
+
     tracing::debug!("listening on {}", addr);
     axum::Server::bind(&addr)
         .serve(app.into_make_service())
@@ -80,11 +89,15 @@ async fn generate(
         .await
         .map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    // TODO: 处理图片
+    let mut engine: Photon = data.try_into().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    engine.apply(&spec.specs);
+
+    let image = engine.generate(ImageOutputFormat::Jpeg(85));
+    info!("Finished processing: image size {}", image.len());
 
     let mut headers = HeaderMap::new();
     headers.insert("Content-Type", HeaderValue::from_static("image/jpeg"));
-    Ok((headers, data.to_vec()))
+    Ok((headers, image))
 }
 
 #[instrument(level = "info", skip(cache))]
@@ -111,4 +124,13 @@ async fn retrieve_image(url: &str, cache: Cache) -> Result<Bytes> {
     Ok(data)
 }
 
-// httpie get "http://localhost:3000/image/CgoKCAjYBBCgBiADCgY6BAgUEBQKBDICCAM/https%3A%2F%2Fimages%2Epexels%2Ecom%2Fphotos%2F2470905%2Fpexels%2Dphoto%2D2470905%2Ejpeg%3Fauto%3Dcompress%26cs%3Dtinysrgb%26dpr%3D2%26h%3D750%26w%3D1260"
+// 调试辅助函数
+fn print_test_url(url: &str) {
+    use std::borrow::Borrow;
+    let spec1 = Spec::new_resize(150, 240);
+    let spec2 = Spec::new_watermark(20, 20);
+    let image_spec = ImageSpec::new(vec![spec1, spec2]);
+    let s: String = image_spec.borrow().into();
+    let test_image = percent_encode(url.as_bytes(), NON_ALPHANUMERIC).to_string();
+    println!("test url: http://localhost:3000/image/{}/{}", s, test_image);
+}

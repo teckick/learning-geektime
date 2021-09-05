@@ -19,6 +19,9 @@ anyhow = "1.0"
 serde = {version = "1.0", features = ["derive"] }
 lru = "0.6"
 percent-encoding = "2"
+image = "0.23"
+photon-rs = "0.3"
+lazy_static = "1"
 
 [build-dependencies]
 prost-build = "0.8"
